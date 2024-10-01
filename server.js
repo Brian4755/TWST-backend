@@ -1,4 +1,5 @@
 require('dotenv').config();
+const morgan = require('morgan')
 const express = require('express');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
@@ -6,6 +7,9 @@ const session = require('express-session');
 const cors = require('cors');
 
 const app = express();
+
+
+app.use(morgan('dev'))
 
 // Middleware for handling CORS to allow communication between React and Express
 app.use(cors({
@@ -72,6 +76,40 @@ app.get('/logout', (req, res) => {
     }
     res.redirect('http://localhost:5173/');
   });
+});
+
+// Middleware to check if the user is Brian
+const isBrian = (req, res, next) => {
+  if (req.isAuthenticated() && req.user.emails[0].value === 'brianmccune@gmail.com') {
+    next(); // Allow the request to proceed
+  } else {
+    res.status(403).json({ error: 'Access denied' }); // Deny access
+  }
+};
+
+// Route to create a post, restricted to Brian
+app.post('/posts', isBrian, (req, res) => {
+  // Create the post in the database
+  const newPost = {
+    title: req.body.title,
+    content: req.body.content,
+    author: req.user.displayName, // Use Brian's name or ID
+  };
+
+  // Save the post (Assuming you have a database)
+  // db.save(newPost);
+
+  res.status(201).json({ message: 'Post created successfully', post: newPost });
+});
+
+// Route to delete a post, restricted to Brian
+app.delete('/posts/:id', isBrian, (req, res) => {
+  const postId = req.params.id;
+
+  // Delete the post from the database (Assuming you have a database)
+  // db.delete(postId);
+
+  res.status(200).json({ message: 'Post deleted successfully' });
 });
 
 // Start the server
